@@ -1,0 +1,129 @@
+version: "3.8"
+
+services:
+  redis-master:
+    image: redis:7
+    container_name: redis-master
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    volumes:
+      - ./redis-master.conf:/usr/local/etc/redis/redis.conf
+    ports:
+      - "6379:6379"
+    networks:
+      - redis-net
+
+  redis-replica-1:
+    image: redis:7
+    container_name: redis-replica-1
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    volumes:
+      - ./redis-replica.conf:/usr/local/etc/redis/redis.conf
+    depends_on:
+      - redis-master
+    networks:
+      - redis-net
+
+  redis-replica-2:
+    image: redis:7
+    container_name: redis-replica-2
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    volumes:
+      - ./redis-replica.conf:/usr/local/etc/redis/redis.conf
+    depends_on:
+      - redis-master
+    networks:
+      - redis-net
+
+  sentinel-1:
+    image: redis:7
+    container_name: sentinel-1
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        sleep 5
+        until redis-cli -h redis-master -p 6379 PING >/dev/null 2>&1; do 
+          sleep 1
+        done
+        MASTER_IP=$$(getent hosts redis-master | awk '{print $$1}')
+        cat > /tmp/sentinel.conf <<EOF
+        port 26379
+        sentinel monitor mymaster $$MASTER_IP 6379 2
+        sentinel down-after-milliseconds mymaster 5000
+        sentinel failover-timeout mymaster 10000
+        sentinel parallel-syncs mymaster 1
+        bind 0.0.0.0
+        protected-mode no
+        EOF
+        redis-sentinel /tmp/sentinel.conf
+    ports:
+      - "26379:26379"
+    depends_on:
+      - redis-master
+      - redis-replica-1
+      - redis-replica-2
+    networks:
+      - redis-net
+
+  sentinel-2:
+    image: redis:7
+    container_name: sentinel-2
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        sleep 5
+        until redis-cli -h redis-master -p 6379 PING >/dev/null 2>&1; do 
+          sleep 1
+        done
+        MASTER_IP=$$(getent hosts redis-master | awk '{print $$1}')
+        cat > /tmp/sentinel.conf <<EOF
+        port 26379
+        sentinel monitor mymaster $$MASTER_IP 6379 2
+        sentinel down-after-milliseconds mymaster 5000
+        sentinel failover-timeout mymaster 10000
+        sentinel parallel-syncs mymaster 1
+        bind 0.0.0.0
+        protected-mode no
+        EOF
+        redis-sentinel /tmp/sentinel.conf
+    ports:
+      - "26380:26379"
+    depends_on:
+      - redis-master
+      - redis-replica-1
+      - redis-replica-2
+    networks:
+      - redis-net
+
+  sentinel-3:
+    image: redis:7
+    container_name: sentinel-3
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        sleep 5
+        until redis-cli -h redis-master -p 6379 PING >/dev/null 2>&1; do 
+          sleep 1
+        done
+        MASTER_IP=$$(getent hosts redis-master | awk '{print $$1}')
+        cat > /tmp/sentinel.conf <<EOF
+        port 26379
+        sentinel monitor mymaster $$MASTER_IP 6379 2
+        sentinel down-after-milliseconds mymaster 5000
+        sentinel failover-timeout mymaster 10000
+        sentinel parallel-syncs mymaster 1
+        bind 0.0.0.0
+        protected-mode no
+        EOF
+        redis-sentinel /tmp/sentinel.conf
+    ports:
+      - "26381:26379"
+    depends_on:
+      - redis-master
+      - redis-replica-1
+      - redis-replica-2
+    networks:
+      - redis-net
+
+networks:
+  redis-net:
+    driver: bridge
