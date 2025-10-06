@@ -72,3 +72,8 @@ View Sentinel logs:
 ```bash
 docker compose logs sentinel-1
 ```
+
+## NOTES
+
+- Ensure that Docker's DNS network is fully initialized before starting Sentinel nodes to avoid startup issues.
+- If static configuration files are used for Sentinel, it may attempt to start before Docker DNS is ready, which can lead to potential connectivity issues.
